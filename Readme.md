@@ -1,93 +1,142 @@
-📌 Job Intelligence Platform
-AI-powered skill & salary insights from real job market data
+# 🚀 Job Intelligence Platform  
+### AI-Powered Job Market Analytics | FastAPI • Streamlit • NLP • ML • Power BI
 
-👤 Author: GV JAYANTH
+The **Job Intelligence Platform** is an end-to-end intelligent analytics system that processes tech job postings, extracts in-demand skills using NLP, predicts salary ranges using machine learning, and provides insights through APIs and dashboards.
 
-🚀 Project Overview
+This project integrates **Data Engineering + NLP + Machine Learning + API Development + BI Visualization** in a single production-style pipeline.
 
-The Job Intelligence Platform is an end-to-end data & AI system that automatically collects and analyzes real-world job postings (Data Engineering / Python focus).
-It extracts structured data, identifies in-demand skills using NLP, predicts salary ranges using machine learning, and exposes powerful insights through:
+---
 
-🔹 FastAPI backend (Swagger API)
-🔹 Streamlit interactive dashboard
-🔹 Power BI analytics report
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-blue?logo=python" />
+  <img src="https://img.shields.io/badge/FastAPI-API-green?logo=fastapi" />
+  <img src="https://img.shields.io/badge/Streamlit-Dashboard-ff4b4b?logo=streamlit" />
+  <img src="https://img.shields.io/badge/Scikit--Learn-Machine%20Learning-orange?logo=scikitlearn" />
+  <img src="https://img.shields.io/badge/Power%20BI-Analytics-F2C811?logo=powerbi" />
+  <img src="https://img.shields.io/badge/Database-PostgreSQL-336791?logo=postgresql" />
+  <img src="https://img.shields.io/github/license/darksun003/job-intel-platform?color=blue" />
+  <img src="https://img.shields.io/github/last-commit/darksun003/job-intel-platform?logo=github" />
+</p>
 
-📊 Live Power BI Report:
-🔗 https://2djrvf-my.sharepoint.com/:u:/g/personal/darksun_003_2djrvf_onmicrosoft_com/IQC-FNVvA4ieTZYbd5zwHgYqAR6XxuYWyc6FepjhzJ3T1eA?e=LZkdoJ
 
-🧠 Architecture
-flowchart LR
-    A[Scraper / CSV Loader] --> B[ETL & Cleaning]
-    B --> C[NLP Skill Extractor]
-    C --> D[Salary Prediction Model]
-    D --> DB[(Relational Database)]
-    DB --> API[FastAPI Backend]
-    DB --> BI[Power BI Analytics]
-    API --> ST[Streamlit Dashboard]
-    ST --> Users[End Users]
-    BI --> Users
+## 🔥 Key Capabilities
 
-🔧 Tech Stack
-| Category         | Technology                              |
-| ---------------- | --------------------------------------- |
-| Backend API      | FastAPI, Uvicorn                        |
-| Database         | SQLite (dev) → PostgreSQL (prod-ready)  |
-| ORM              | SQLAlchemy                              |
-| NLP              | Regex skill mining, stopwords filtering |
-| Machine Learning | TF-IDF + RandomForestRegressor          |
-| Dashboard        | Streamlit                               |
-| BI               | Power BI                                |
-| Packaging        | joblib, pandas                          |
+| Feature | Description |
+|--------|-------------|
+| 📥 ETL Pipeline | Loads raw job postings from CSV into a normalized SQL database |
+| 🔍 Smart Skill Extraction (NLP) | Automatically identifies technical skills from job descriptions |
+| 💰 Salary Prediction Model | ML model predicts expected salary range for jobs lacking salary info |
+| ⚙ REST API Layer | FastAPI backend with interactive Swagger (OpenAPI) |
+| 📊 Interactive Dashboards | Streamlit UI + Power BI analytics |
+| 🗃 Database | Tables: Jobs, Companies, Locations, Skills, Job-Skills |
 
-📂 Project Structure
+> **Dataset:** Demonstration dataset `sample_jobs.csv` is used to show complete workflow end to end.
+
+---
+
+## 🏗 System Architecture
+```
+CSV → ETL → SQL Database
+↓
+┌─────────────┐
+│ Salary Model│◀──── NLP Skill Extractor
+└─────────────┘
+↓
+┌──────────────┬───────────────┬───────────────┐
+```
+
+---
+
+## 📂 Project Structure
+```
 job-intel-platform/
-│ README.md
-│ requirements.txt
 │
-├─ src/
-│  ├─ api/               # FastAPI endpoints
-│  ├─ db/                # SQLAlchemy models & DB session
-│  ├─ etl/               # Data ingestion (CSV / scraping)
-│  ├─ nlp_ml/            # Skill extraction + salary model
-│  └─ dashboards/        # Streamlit app
+├── src/
+│ ├── db/ # Database models + session management
+│ ├── etl/ # CSV ingestion / preprocessing pipeline
+│ ├── nlp_ml/ # NLP skill extraction + ML salary model
+│ ├── api/ # FastAPI routes & Pydantic schemas
+│ └── dashboards/ # Streamlit user interface
 │
-├─ data/
-│  ├─ raw/               # CSV / scraped files
-│  └─ models/            # Saved ML model
+├── data/
+│ ├── raw/ # job CSV inputs
+│ └── models/ # trained ML models (.joblib)
 │
-├─ docs/                 # Documentation (scraping, db schema, ML, deployment)
-├─ powerbi/              # PBIX report
-└─ architecture/         # Diagram (PNG / PDF)
+├── powerbi/ # Power BI report (.pbix)
+└── README.md
+```
 
-⚙️ Setup Instructions
-1️⃣ Install environment
-git clone <repo_url>
-cd job-intel-platform
-python -m venv venv
-venv\Scripts\activate
+
+---
+
+## ⚡ Tech Stack
+
+| Component | Technology |
+|----------|------------|
+| Language | Python 3 |
+| Backend API | FastAPI |
+| Dashboard | Streamlit |
+| BI Reporting | Power BI |
+| ML | scikit-learn |
+| NLP | RegEx-based skill extraction |
+| Storage | PostgreSQL / SQLite |
+| ORM | SQLAlchemy |
+
+---
+
+## 🚀 Getting Started
+
+### 1️⃣ Install dependencies
+```bash
 pip install -r requirements.txt
-cd "D:\PERSONAL INFO\IOrbit\job-intel-platform" [directory]
 
-
-2️⃣ Initialize DB and Load Data
-$env:DATABASE_URL = "sqlite:///data/jobs.db"
+│ FastAPI API │ Streamlit App │ Power BI │
+└──────────────┴───────────────┴───────────────┘
+```
+###2️⃣ Load dataset into the database
+```
 python -m src.etl.load_jobs_from_csv
+```
+###3️⃣ Extract skills
+```
 python -m src.nlp_ml.skill_extractor
+```
+###4️⃣ Train salary model
+```
 python -m src.nlp_ml.salary_model_train
-python -m src.nlp_ml.salary_model_inference
+```
 
-3️⃣ Start FastAPI (Swagger UI)
-uvicorn src.api.main:app --reload
-🔗 Swagger Docs: http://127.0.0.1:8000/docs
-🔗 Health Check: http://127.0.0.1:8000/health
+Dashboard includes:
+Job search & filtering
+Company-wise job count
+Location-wise demand
+Top skills analysis
+Salary insights
 
-4️⃣ Start Streamlit Dashboard
-streamlit run src/dashboards/streamlit_app.py
-🔗 Dashboard: http://localhost:8501
+🔹 Power BI Analytics
+Open the .pbix file under the powerbi/ folder to visualize:
+Demand by company & location
+Skill frequency trends
+Salary distributions
+Hiring patterns for data roles
 
-🌱 Future Improvements
-Live job scraping using official APIs (LinkedIn, Indeed, Naukri etc.)
-Embedding models for semantic skill extraction (BERT / spaCy)
-Real-time pipeline with Airflow
-Deploy backend & dashboard to cloud (Render, AWS, Azure)
-Automated daily refresh for Power BI
+✨ Outcome
+The platform demonstrates a complete real-world job intelligence pipeline including:
+ETL
+NLP skill mining
+Salary prediction
+Interactive dashboards [powerbi, streamlit]
+Fast API for external integrations
+
+⚙ Future Enhancements (Roadmap)
+Real-time job ingestion via APIs
+Recommendation system for job seekers
+LLM-based job summarization
+Deployment on cloud 
+
+👤 Author
+Field	Details
+Name	GV Jayanth
+Email	📩 jayanth792033@gmail.com
+LinkedIn	🔗 https://www.linkedin.com/in/gv-jayanth
+GitHub	💻 https://github.com/darksun003
