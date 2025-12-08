@@ -93,15 +93,15 @@ pip install -r requirements.txt
 │ FastAPI API │ Streamlit App │ Power BI │
 └──────────────┴───────────────┴───────────────┘
 ```
-###2️⃣ Load dataset into the database
+### 2️⃣ Load dataset into the database
 ```
 python -m src.etl.load_jobs_from_csv
 ```
-###3️⃣ Extract skills
+### 3️⃣ Extract skills
 ```
 python -m src.nlp_ml.skill_extractor
 ```
-###4️⃣ Train salary model
+### 4️⃣ Train salary model
 ```
 python -m src.nlp_ml.salary_model_train
 ```
