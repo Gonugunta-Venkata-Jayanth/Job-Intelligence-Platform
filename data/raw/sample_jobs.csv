@@ -1,0 +1,4 @@
+title,company,location,min_salary,max_salary,currency,description,source,url,posted_date
+Data Engineer (Python/Spark),TechOrbit Analytics,"Hyderabad, Telangana, India",800000,1400000,INR,"Looking for Data Engineer with Python, SQL, Spark, ETL, AWS","seed_csv","https://jobs.example.com/de-001",2025-12-04
+Python Data Engineer,DataFlow Labs,"Bengaluru, Karnataka, India",900000,1500000,INR,"Strong Python, Pandas, SQL, Airflow, AWS required","seed_csv","https://jobs.example.com/de-002",2025-12-03
+Junior Data Engineer (SQL/Python),InsightWorks,"Remote, India",500000,900000,INR,"Entry-level role with Python, SQL, basic ETL","seed_csv","https://jobs.example.com/de-003",2025-12-02
