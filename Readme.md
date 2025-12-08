@@ -141,6 +141,10 @@ Recommendation system for job seekers
 LLM-based job summarization
 Deployment on cloud 
 ```
+### Access in any browser
+```
+https://job-intelligence-dashboard.streamlit.app/
+```
 
 👤 Author
 ```
