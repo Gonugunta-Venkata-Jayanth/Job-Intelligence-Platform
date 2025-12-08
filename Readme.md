@@ -1,4 +1,4 @@
-# 🚀 Job Intelligence Platform  
+#  Job Intelligence Platform  
 ### AI-Powered Job Market Analytics | FastAPI • Streamlit • NLP • ML • Power BI
 
 The **Job Intelligence Platform** is an end-to-end intelligent analytics system that processes tech job postings, extracts in-demand skills using NLP, predicts salary ranges using machine learning, and provides insights through APIs and dashboards.
@@ -107,36 +107,46 @@ python -m src.nlp_ml.salary_model_train
 ```
 
 Dashboard includes:
+```
 Job search & filtering
 Company-wise job count
 Location-wise demand
 Top skills analysis
 Salary insights
+```
 
 🔹 Power BI Analytics
+```
 Open the .pbix file under the powerbi/ folder to visualize:
 Demand by company & location
 Skill frequency trends
 Salary distributions
 Hiring patterns for data roles
+```
 
 ✨ Outcome
+```
 The platform demonstrates a complete real-world job intelligence pipeline including:
 ETL
 NLP skill mining
 Salary prediction
 Interactive dashboards [powerbi, streamlit]
 Fast API for external integrations
+```
 
 ⚙ Future Enhancements (Roadmap)
+```
 Real-time job ingestion via APIs
 Recommendation system for job seekers
 LLM-based job summarization
 Deployment on cloud 
+```
 
 👤 Author
+```
 Field	Details
 Name	GV Jayanth
 Email	📩 jayanth792033@gmail.com
 LinkedIn	🔗 https://www.linkedin.com/in/gv-jayanth
 GitHub	💻 https://github.com/darksun003
+```
