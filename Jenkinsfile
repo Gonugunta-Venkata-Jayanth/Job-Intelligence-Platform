@@ -5,6 +5,7 @@ pipeline {
         stage("build") {
             steps {
                 echo "Hello, we are building a Jenkins file"
+                echo "hey good working"
             }
         }
 
