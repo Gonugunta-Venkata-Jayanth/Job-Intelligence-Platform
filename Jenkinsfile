@@ -2,16 +2,21 @@ pipeline {
     agent any
 
     stages {
-        stage("build") {
+        stage("run frontend") {
             steps {
-                echo "Hello, we are building a Jenkins file"
-                echo "hey good working"
+                echo "Executing yarn"
+                nodejs("26.5."){
+                    sh 'yarn install'
+                }
             }
         }
 
-        stage("tests") {
+        stage("run backend") {
             steps {
-                echo "We are testing"
+                echo "executing gradle"
+                withGradle{
+                    sh './gradlew -v'
+                }
             }
         }
 
