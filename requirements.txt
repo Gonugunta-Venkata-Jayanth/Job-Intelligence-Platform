@@ -1,13 +1,10 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
-psycopg2-binary
 pydantic
-python-dotenv
 pandas
 numpy
 scikit-learn
+joblib
 requests
-beautifulsoup4
 streamlit
-alembic
