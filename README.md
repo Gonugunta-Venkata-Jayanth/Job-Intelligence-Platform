@@ -16,11 +16,13 @@
 
 ## Features
 
-- **ETL from CSV** – `src/etl/load_jobs_from_csv.py` reads job postings with pandas and normalises them into `companies`, `locations` and `jobs` tables (get-or-create for companies and locations).
+- **Job scrapers** – `src/scrapping/` pulls live postings from the free public [Remotive](https://remotive.com/api-documentation) and [Arbeitnow](https://www.arbeitnow.com/blog/job-board-api) APIs (retries, rotating user agent, polite delays, de-duplication, HTML cleaning) and writes them as a CSV in the loader's format.
+- **ETL from CSV** – `src/etl/load_jobs_from_csv.py <csv>` reads job postings with pandas and normalises them into `companies`, `locations` and `jobs` tables (get-or-create helpers in `src/db/crud.py`).
 - **Synthetic data generator** – `src/etl/generate_synthetic_jobs.py` augments `data/raw/sample_jobs.csv` into a larger demo dataset (`jobs_synthetic_large.csv`, 20,000 rows by default) by varying titles, companies, locations and salaries.
 - **Rule-based NLP skill extraction** – `src/nlp_ml/skill_extractor.py` matches 30+ technical skills (Python, SQL, Spark, Airflow, AWS, Snowflake, Docker, Kubernetes, Power BI …) with compiled regular expressions and links them to jobs through a `job_skills` table.
 - **Salary prediction** – `src/nlp_ml/salary_model_train.py` trains a `TfidfVectorizer` (1–2 grams) + `RandomForestRegressor` pipeline on title + description + location to predict average salary; `salary_model_inference.py` fills `salary_pred_min` / `salary_pred_max` (±15 % band) for jobs without a posted salary.
-- **REST API** – FastAPI service with search, location and skill filters, pagination and a top-skills endpoint, with interactive Swagger docs.
+- **REST API** – FastAPI service split into `routers/jobs.py` and `routers/skills.py`: search with location and skill filters, pagination, job detail, skill list and top skills, with interactive Swagger docs.
+- **Tests** – pytest suite (`tests/`) covering the CSV loader, skill tagging, every API endpoint and the helpers.
 - **Streamlit dashboard** – KPI cards, sidebar filters (text search, locations, skills, actual vs predicted salary), skill frequency chart, salary chart and a jobs table.
 - **Power BI report** – `powerbi/Job_Insights_Report.pbix` (PDF export in `screenshots and pdf/`).
 - **Configurable storage** – SQLite by default, any SQLAlchemy URL (e.g. PostgreSQL) via `DATABASE_URL`.
@@ -31,17 +33,20 @@
 |-------|------------|
 | Language | Python 3 |
 | Data processing | pandas, NumPy |
-| Database / ORM | SQLAlchemy, SQLite (default), PostgreSQL (`psycopg2-binary`) |
+| Database / ORM | SQLAlchemy, SQLite (default); PostgreSQL works with any SQLAlchemy driver (e.g. `psycopg2-binary`, installed separately) |
 | NLP | Regex-based skill dictionary |
 | Machine learning | scikit-learn (TF-IDF + Random Forest), joblib |
 | API | FastAPI, Pydantic v2, Uvicorn |
 | Dashboards | Streamlit, Power BI |
+| Scraping | requests (Remotive and Arbeitnow JSON APIs) |
+| Testing | pytest, FastAPI TestClient |
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    A[sample_jobs.csv / synthetic CSV] --> B[ETL<br/>load_jobs_from_csv.py]
+    S[Scrapers<br/>Remotive, Arbeitnow] --> A
+    A[CSV: scraped / sample / synthetic] --> B[ETL<br/>load_jobs_from_csv.py]
     B --> DB[(SQL database<br/>SQLite / PostgreSQL)]
     DB --> C[Skill extractor<br/>regex NLP]
     C -->|job_skills| DB
@@ -49,7 +54,7 @@ flowchart LR
     D --> M[[salary_model.joblib]]
     M --> E[Salary inference]
     E -->|salary_pred_min / max| DB
-    DB --> API[FastAPI<br/>/jobs, /skills/top]
+    DB --> API[FastAPI<br/>/jobs, /skills]
     DB --> ST[Streamlit dashboard]
     DB --> BI[Power BI report]
 ```
@@ -82,23 +87,23 @@ Full SQL DDL: [`src/db/schema.sql`](src/db/schema.sql) · ORM models: [`src/db/m
 ```
 Job-Intelligence-Platform/
 ├── src/
-│   ├── api/            # FastAPI app (main.py) and Pydantic schemas
+│   ├── api/            # FastAPI app (main.py), routers/jobs.py, routers/skills.py, schemas
 │   ├── config/         # Settings (PROJECT_NAME, ENV, DATABASE_URL)
 │   ├── dashboards/     # Streamlit dashboard (streamlit_app.py)
-│   ├── db/             # SQLAlchemy models, session, schema.sql, seed script
+│   ├── db/             # SQLAlchemy models, session, crud helpers, schema.sql, seed script
 │   ├── etl/            # CSV loader and synthetic data generator
-│   ├── nlp_ml/         # Skill extractor, salary model training & inference
-│   ├── scrapping/      # Scraper modules (placeholders, not implemented yet)
-│   └── utils/          # Helpers (placeholders)
+│   ├── nlp_ml/         # Skill extractor, salary features, model training & inference
+│   ├── scrapping/      # Remotive + Arbeitnow API scrapers and run_all_scrapers CLI
+│   └── utils/          # Logging, text cleaning and salary-parsing helpers
+├── tests/              # pytest suite
 ├── data/
 │   ├── raw/            # sample_jobs.csv, jobs_synthetic_large.csv
 │   └── models/         # salary_model.joblib
-├── notebooks/          # EDA / NLP / model notebooks (placeholders)
 ├── powerbi/            # Job_Insights_Report.pbix
 ├── architecture/       # Target-state architecture diagram
 ├── screenshots and pdf/# API, dashboard and Power BI screenshots
 ├── db_schema.md · model_performance.md · scraping_strategy.md · deployment_steps.md
-└── requirements.txt
+└── requirements.txt · requirements-dev.txt
 ```
 
 ## Getting Started
@@ -118,6 +123,7 @@ pip install -r requirements.txt
 SQLite (`./job_intel.db`) is used by default. To use PostgreSQL instead:
 
 ```bash
+pip install psycopg2-binary
 export DATABASE_URL="postgresql+psycopg2://user:password@localhost:5432/job_intel"
 ```
 
@@ -128,8 +134,12 @@ Tables are created automatically on first run (`Base.metadata.create_all`).
 Run every command from the repository root:
 
 ```bash
-# Load jobs (reads data/raw/sample_jobs.csv)
+# Optional: scrape live postings (Remotive + Arbeitnow) into a CSV, add --load to import it
+python -m src.scrapping.run_all_scrapers --query "data engineer" --max-jobs 50
+
+# Load jobs (default data/raw/sample_jobs.csv, or pass any CSV in the same layout)
 python -m src.etl.load_jobs_from_csv
+python -m src.etl.load_jobs_from_csv data/raw/scraped_jobs.csv
 
 # Optional: generate the 20k-row synthetic dataset from sample_jobs.csv
 python -m src.etl.generate_synthetic_jobs
@@ -146,7 +156,12 @@ python -m src.nlp_ml.salary_model_inference
 
 You can also insert a single demo record with `python -m src.db.seed_dummy_data`.
 
-> The CSV loader currently reads the path hard-coded in its `__main__` block (`data/raw/sample_jobs.csv`); edit it, or call `load_jobs_from_csv("<path>")`, to load another file.
+Run the tests with:
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest -q
+```
 
 ### 4. Start the API
 
@@ -171,6 +186,8 @@ Open http://localhost:8501.
 | GET | `/` | Service info with links to docs and health | – |
 | GET | `/health` | Health check | – |
 | GET | `/jobs` | Search jobs, newest first; returns `{count, items}` | `q` (title/description text), `location`, `skill`, `limit` (1–100, default 20), `offset` |
+| GET | `/jobs/{job_id}` | One job (404 if missing) | – |
+| GET | `/skills` | All skills, alphabetical | – |
 | GET | `/skills/top` | Most frequent skills with job counts | `limit` (1–100, default 20) |
 
 Example:
@@ -183,20 +200,19 @@ curl "http://127.0.0.1:8000/skills/top?limit=10"
 ## Results
 
 - Screenshots of the running API (`/docs`, `/health`, `/jobs`, `/skills/top`) and the Streamlit dashboard are in [`screenshots and pdf/`](screenshots%20and%20pdf/), along with a PDF export of the Power BI report.
-- Salary-model evaluation recorded by the author is in [`model_performance.md`](model_performance.md). The training script prints MAE, RMSE and R² on a 20 % hold-out split each time it runs; note that the bundled data is small / synthetic, so treat these numbers as a demonstration of the pipeline rather than real-world accuracy.
+- Salary model ([`model_performance.md`](model_performance.md)): on the 20,000-row synthetic dataset the TF-IDF + Random Forest model scored MAE 112,276, RMSE 139,563 and R² 0.580 on a 4,000-row hold-out. The data is synthetic (generated from 3 sample jobs), so this demonstrates the pipeline, not real-world accuracy; the committed `salary_model.joblib` is a tiny demo model trained on 3 rows.
 
 ## Future Work
 
-- Implement the scrapers in `src/scrapping/` (strategy outlined in [`scraping_strategy.md`](scraping_strategy.md)) for real-time ingestion
-- Split the API into the planned `routers/jobs.py` and `routers/skills.py` modules and add tests
-- Accept a CSV path from the command line in the ETL loader
-- Fill in the analysis notebooks and add dedicated salary feature engineering
+- Schedule the scrapers and add more sources (see [`scraping_strategy.md`](scraping_strategy.md))
+- Train the salary model on real postings with salaries and add structured features (seniority, skills, city)
+- Add EDA / modelling notebooks
 - Add Alembic migrations, Docker setup and CI
 - Job recommendations and LLM-based job summarisation
 
 ## License
 
-See [LICENSE](LICENSE).
+MIT – see [LICENSE](LICENSE).
 
 ## Author
 
