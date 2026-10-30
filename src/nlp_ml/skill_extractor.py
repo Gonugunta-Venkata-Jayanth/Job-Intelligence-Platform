@@ -3,6 +3,7 @@ import re
 from sqlalchemy.orm import Session
 from src.db.session import SessionLocal, init_db
 from src.db import models
+from src.db.crud import get_or_create_skill
 SKILL_PATTERNS: Dict[str, List[str]] = {
     "Python": [r"\bpython\b"],
     "SQL": [r"\bsql\b"],
@@ -52,15 +53,6 @@ def extract_skills_from_text(text: str) -> Set[str]:
                 found.add(skill)
                 break
     return found
-def get_or_create_skill(db: Session, skill_name: str) -> models.Skill:
-    skill = db.query(models.Skill).filter_by(name=skill_name).first()
-    if skill:
-        return skill
-    skill = models.Skill(name=skill_name)
-    db.add(skill)
-    db.commit()
-    db.refresh(skill)
-    return skill
 def tag_skills_for_job(db: Session, job: models.Job) -> int:
     text_parts = [job.title or "", job.description or ""]
     full_text = " \n".join(text_parts)

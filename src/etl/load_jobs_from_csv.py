@@ -1,41 +1,82 @@
-import pandas as pd
+"""Load job postings from a CSV file into the database.
+
+Usage (from the repository root)::
+
+    python -m src.etl.load_jobs_from_csv                                  # data/raw/sample_jobs.csv
+    python -m src.etl.load_jobs_from_csv data/raw/jobs_synthetic_large.csv
+"""
+import argparse
 from datetime import datetime
 from typing import Optional
+
+import pandas as pd
 from sqlalchemy.orm import Session
-from src.db.session import SessionLocal, init_db
+
 from src.db import models
-def get_or_create_company(db: Session, name: str) -> models.Company:
-    company = db.query(models.Company).filter_by(name=name).first()
-    if company:
-        return company
-    company = models.Company(name=name);db.add(company);db.commit();db.refresh(company)
-    return company
-def get_or_create_location(db: Session, raw_location: str) -> models.Location:
-    loc = db.query(models.Location).filter_by(raw_location=raw_location).first()
-    if loc:
-        return loc
-    loc = models.Location(raw_location=raw_location);db.add(loc);db.commit();db.refresh(loc)
-    return loc
-def parse_date_safe(value: Optional[str]):
-    if not value or pd.isna(value):
+from src.db.crud import get_or_create_company, get_or_create_location
+from src.db.session import SessionLocal, init_db
+
+DEFAULT_CSV = "data/raw/sample_jobs.csv"
+
+
+def _clean(value) -> Optional[str]:
+    """Return ``None`` for missing values instead of the string ``"nan"``."""
+    if value is None or (not isinstance(value, str) and pd.isna(value)):
+        return None
+    value = str(value).strip()
+    return value or None
+
+
+def _to_float(value) -> Optional[float]:
+    if value is None or pd.isna(value):
+        return None
+    return float(value)
+
+
+def parse_date_safe(value) -> Optional["datetime.date"]:
+    value = _clean(value)
+    if not value:
         return None
     try:
-        return datetime.strptime(value, "%Y-%m-%d").date()
-    except Exception:
+        return datetime.strptime(value[:10], "%Y-%m-%d").date()
+    except ValueError:
         return None
-def load_jobs_from_csv(csv_path: str):
+
+
+def load_jobs_from_csv(csv_path: str = DEFAULT_CSV) -> int:
     init_db()
     df = pd.read_csv(csv_path)
     db: Session = SessionLocal()
     try:
         for _, row in df.iterrows():
-            company = get_or_create_company(db, str(row["company"]))
-            location = get_or_create_location(db, str(row["location"]))
-            job = models.Job(title=str(row["title"]),source=str(row.get("source", "csv_import")),url=str(row.get("url", None)),company_id=company.id,location_id=location.id,description=str(row.get("description", "")),min_salary=float(row["min_salary"]) if not pd.isna(row["min_salary"]) else None,max_salary=float(row["max_salary"]) if not pd.isna(row["max_salary"]) else None,currency=str(row.get("currency", None)) if not pd.isna(row.get("currency", None)) else None,posted_date=parse_date_safe(row.get("posted_date")),)
+            company = get_or_create_company(db, _clean(row.get("company")) or "Unknown")
+            location = get_or_create_location(db, _clean(row.get("location")) or "Unknown")
+            job = models.Job(
+                title=_clean(row.get("title")) or "Untitled",
+                source=_clean(row.get("source")) or "csv_import",
+                url=_clean(row.get("url")),
+                company_id=company.id,
+                location_id=location.id,
+                description=_clean(row.get("description")) or "",
+                min_salary=_to_float(row.get("min_salary")),
+                max_salary=_to_float(row.get("max_salary")),
+                currency=_clean(row.get("currency")),
+                posted_date=parse_date_safe(row.get("posted_date")),
+            )
             db.add(job)
         db.commit()
         print(f"Imported {len(df)} jobs from {csv_path}")
+        return len(df)
     finally:
         db.close()
+
+
+def main(argv=None) -> None:
+    parser = argparse.ArgumentParser(description="Load jobs from a CSV into DATABASE_URL.")
+    parser.add_argument("csv_path", nargs="?", default=DEFAULT_CSV, help=f"CSV to load (default: {DEFAULT_CSV})")
+    args = parser.parse_args(argv)
+    load_jobs_from_csv(args.csv_path)
+
+
 if __name__ == "__main__":
-    load_jobs_from_csv("data/raw/sample_jobs.csv")
+    main()
