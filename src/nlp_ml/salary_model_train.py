@@ -1,5 +1,5 @@
+import argparse
 import os
-from typing import Optional
 import pandas as pd
 from sqlalchemy import text
 from sklearn.model_selection import train_test_split
@@ -9,6 +9,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestRegressor
 import joblib
 from src.db.session import engine, init_db
+from src.nlp_ml.salary_feature_engineering import add_avg_salary_target, add_text_feature
 MODEL_PATH = "data/models/salary_model.joblib"
 def load_training_data() -> pd.DataFrame:
     init_db()
@@ -28,17 +29,8 @@ def load_training_data() -> pd.DataFrame:
         """
     )
     df = pd.read_sql(query, engine)
-    df["min_salary"] = df["min_salary"].astype(float)
-    df["max_salary"] = df["max_salary"].astype(float)
-    df["avg_salary"] = (df["min_salary"] + df["max_salary"]) / 2.0
-    def combine_text(row) -> str:
-        parts = [
-            str(row.get("title") or ""),
-            str(row.get("description") or ""),
-            str(row.get("raw_location") or ""),
-        ]
-        return " \n".join(parts)
-    df["text"] = df.apply(combine_text, axis=1)
+    df = add_avg_salary_target(df)
+    df = add_text_feature(df)
     df = df.dropna(subset=["avg_salary"])
     df = df[df["text"].str.strip() != ""]
     return df
@@ -60,7 +52,7 @@ def train_and_save_model(df: pd.DataFrame, model_path: str = MODEL_PATH) -> None
                     stop_words="english",
                 ),
             ),
-            ("rf", RandomForestRegressor(n_estimators=200, random_state=42)),
+            ("rf", RandomForestRegressor(n_estimators=200, random_state=42, n_jobs=-1)),
         ]
     )
     print(f"Training on {len(X_train)} samples, testing on {len(X_test)} samples...")
@@ -77,12 +69,15 @@ def train_and_save_model(df: pd.DataFrame, model_path: str = MODEL_PATH) -> None
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
     joblib.dump(pipeline, model_path)
     print(f"\nModel saved to: {model_path}")
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Train the salary model on jobs in DATABASE_URL that have min/max salary.")
+    parser.add_argument("--model-path", default=MODEL_PATH)
+    args = parser.parse_args(argv)
     df = load_training_data()
     if df.empty:
         print("[ERROR] No training data found. " "Please ensure jobs have min_salary and max_salary populated.")
         return
     print(f"Loaded {len(df)} rows for training.")
-    train_and_save_model(df, MODEL_PATH)
+    train_and_save_model(df, args.model_path)
 if __name__ == "__main__":
     main()

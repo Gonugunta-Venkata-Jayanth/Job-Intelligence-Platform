@@ -1,18 +1,19 @@
-from typing import Optional
+import argparse
 import pandas as pd
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 import joblib
 from src.db.session import engine, SessionLocal, init_db
 from src.db import models
+from src.nlp_ml.salary_feature_engineering import add_text_feature
 MODEL_PATH = "data/models/salary_model.joblib"
-def load_model():
+def load_model(model_path: str = MODEL_PATH):
     try:
-        model = joblib.load(MODEL_PATH)
-        print(f"Loaded model from {MODEL_PATH}")
+        model = joblib.load(model_path)
+        print(f"Loaded model from {model_path}")
         return model
     except FileNotFoundError:
-        print(f"[ERROR] Model file not found at {MODEL_PATH}. "
+        print(f"[ERROR] Model file not found at {model_path}. "
             f"Train it first with salary_model_train.py.")
         raise
 def fetch_jobs_needing_prediction() -> pd.DataFrame:
@@ -33,16 +34,7 @@ def fetch_jobs_needing_prediction() -> pd.DataFrame:
         """
     )
     df = pd.read_sql(query, engine)
-
-    def combine_text(row) -> str:
-        parts = [
-            str(row.get("title") or ""),
-            str(row.get("description") or ""),
-            str(row.get("raw_location") or ""),
-        ]
-        return " \n".join(parts)
-    if not df.empty:
-        df["text"] = df.apply(combine_text, axis=1)
+    df = add_text_feature(df)
     return df
 def update_predictions_in_db(df_preds: pd.DataFrame) -> None:
     db: Session = SessionLocal()
@@ -61,8 +53,11 @@ def update_predictions_in_db(df_preds: pd.DataFrame) -> None:
         print(f"Updated predictions for {len(df_preds)} jobs.")
     finally:
         db.close()
-def main():
-    model = load_model()
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Predict salaries for jobs that have none.")
+    parser.add_argument("--model-path", default=MODEL_PATH)
+    args = parser.parse_args(argv)
+    model = load_model(args.model_path)
     df_jobs = fetch_jobs_needing_prediction()
     if df_jobs.empty:
         print("No jobs found that need salary prediction.")
