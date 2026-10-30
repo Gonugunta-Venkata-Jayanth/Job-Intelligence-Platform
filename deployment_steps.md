@@ -1,44 +1,64 @@
-
----
-
-## 📌 4️⃣ `deployment_steps.md`
-
-```md
 # 🚀 Deployment Guide – Job Intelligence Platform
 
-This document describes how to deploy the application end-to-end.
+How to run the application end-to-end. Run every command from the repository root.
 
----
+## 1. Clone the repository
 
-📦 1. Clone the Repository
-
+```bash
+git clone https://github.com/Gonugunta-Venkata-Jayanth/Job-Intelligence-Platform.git
+cd Job-Intelligence-Platform
 ```
-git clone https://github.com/YOUR_USERNAME/job-intel-platform.git
-cd job-intel-platform
 
-2. Create Virtual Environment
+## 2. Create a virtual environment and install dependencies
+
+```bash
 python -m venv venv
-source venv/bin/activate  
-venv\Scripts\activate     
+source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+```
 
-3. Start Database
-Local SQLite (default)
-✔ Works automatically — no setup
+## 3. Database
 
-4. Run ETL and Model
-python -m src.etl.load_jobs_from_csv data/raw/sample_jobs.csv
+SQLite (`./job_intel.db`) is used by default and needs no setup; tables are created
+automatically. To use PostgreSQL, install a driver and set `DATABASE_URL`:
+
+```bash
+pip install psycopg2-binary
+export DATABASE_URL="postgresql+psycopg2://user:password@localhost:5432/job_intel"
+```
+
+## 4. Ingest data, tag skills, train and run the model
+
+```bash
+# optional: pull fresh postings from the public Remotive and Arbeitnow APIs
+python -m src.scrapping.run_all_scrapers --query "data engineer" --out data/raw/scraped_jobs.csv
+
+python -m src.etl.load_jobs_from_csv data/raw/sample_jobs.csv   # or any CSV in the same layout
 python -m src.nlp_ml.skill_extractor
+python -m src.nlp_ml.salary_model_train      # -> data/models/salary_model.joblib
 python -m src.nlp_ml.salary_model_inference
+```
 
-5. Run FastAPI Backend
-uvicorn src.api.main:app --reload
+## 5. Run the FastAPI backend
 
-6. Run Streamlit Dashboard
+```bash
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+## 6. Run the Streamlit dashboard
+
+```bash
 streamlit run src/dashboards/streamlit_app.py
+```
 
-7. Publish Power BI Dashboard
-Connect to database (SQLite/Postgres)
-Build visuals
-Publish to Power BI Service
-Add dashboard link to README
+## 7. Power BI report
+
+Open `powerbi/Job_Insights_Report.pbix`, point its data source at your database
+(SQLite via ODBC, or PostgreSQL), refresh, and publish to the Power BI Service if needed.
+
+## 8. Tests
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest -q
+```
